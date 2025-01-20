@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor HC-SR04</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="/static/js/chart.js"></script>
+</head>
+<body>
+<h1>Sensor HC-SR04</h1>
+<p>La distancia actual medida es: <strong>{{ distance }}</strong> cm</p>
+<p>{{ alert }}</p>
+<canvas id="distanceChart" width="400" height="200"></canvas>
+
+<script>
+        // JavaScript para la gráfica en tiempo real
+        const ctx = document.getElementById('distanceChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Distancia (cm)',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        function updateChart() {
+            fetch('/api/distance')
+                .then(response => response.json())
+                .then(data => {
+                    const now = new Date().toLocaleTimeString();
+                    chart.data.labels.push(now);
+                    chart.data.datasets[0].data.push(data.distance);
+                    chart.update();
+                });
+        }
+
+        setInterval(updateChart, 1000);  // Actualizar cada segundo
+
+
+
+
+
+</script>
+</body>
+</html>

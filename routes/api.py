@@ -8,4 +8,4 @@ api_routes = Blueprint('api', __name__)
 def api_distance() :
     """Devuelve la distancia medida en JSON."""
     distance = get_distance()
-    return jsonify({'distance' : distance})
+    return jsonify({'distance' : 100})

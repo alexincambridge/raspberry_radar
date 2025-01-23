@@ -3,54 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor HC-SR04</title>
+    <title>Radar Sensor HC-SR04</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <script src="/static/js/chart.js"></script>
 </head>
 <body>
-<h1>Sensor HC-SR04</h1>
-<p>La distancia actual medida es: <strong>{{ distance }}</strong> cm</p>
-<p>{{ alert }}</p>
-<canvas id="distanceChart" width="400" height="200"></canvas>
+<h1>Radar Sensor HC-SR04</h1>
+<p>La distancia actual medida es: <strong id="distance">0</strong> cm</p>
+
+<canvas id="radarCanvas" width="400" height="400" style="border:1px solid #000;"></canvas>
+
+<div>
+    <button id="startButton">Start Scanning</button>
+    <button id="stopButton" disabled>Stop Scanning</button>
+</div>
 
 <script>
-        // JavaScript para la gráfica en tiempo real
-        const ctx = document.getElementById('distanceChart').getContext('2d');
-        const chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Distancia (cm)',
-                    data: [],
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 2,
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
+        const canvas = document.getElementById('radarCanvas');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = canvas.width / 2 - 10;
+        let angle = 0;
 
-        function updateChart() {
+        const sensorData = []; // To store detected distances
+        let scanning = false; // Scanning state
+        let intervalId; // Interval ID for controlling updates
+
+        // Draw radar on canvas
+        function drawRadar() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw radar circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw radar grid
+            for (let i = 0; i < 360; i += 30) {
+                const x = centerX + radius * Math.cos((i * Math.PI) / 180);
+                const y = centerY + radius * Math.sin((i * Math.PI) / 180);
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = '#00AA00';
+                ctx.stroke();
+            }
+
+            // Draw sweeping line
+            const sweepX = centerX + radius * Math.cos(angle);
+            const sweepY = centerY + radius * Math.sin(angle);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(sweepX, sweepY);
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Draw detected points
+            sensorData.forEach((point) => {
+                const x = centerX + point.distance * Math.cos(point.angle);
+                const y = centerY + point.distance * Math.sin(point.angle);
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                ctx.fillStyle = 'red';
+                ctx.fill();
+            });
+
+            // Increment sweeping angle
+            angle += 0.05;
+            if (angle > 2 * Math.PI) {
+                angle = 0;
+            }
+        }
+
+        // Fetch sensor data
+        function fetchSensorData() {
             fetch('/api/distance')
                 .then(response => response.json())
                 .then(data => {
-                    const now = new Date().toLocaleTimeString();
-                    chart.data.labels.push(now);
-                    chart.data.datasets[0].data.push(data.distance);
-                    chart.update();
+                    document.getElementById('distance').textContent = data.distance;
+
+                    // Convert distance to polar coordinates
+                    const distance = Math.min(data.distance, radius); // Limit to max radius
+                    sensorData.push({
+                        distance: distance,
+                        angle: angle,
+                    });
+
+                    // Remove old data
+                    if (sensorData.length > 360) {
+                        sensorData.shift();
+                    }
                 });
         }
 
-        setInterval(updateChart, 1000);  // Actualizar cada segundo
+        // Start scanning
+        function startScanning() {
+            if (!scanning) {
+                scanning = true;
+                intervalId = setInterval(() => {
+                    fetchSensorData();
+                    drawRadar();
+                }, 50); // Update every 50ms
+                document.getElementById('startButton').disabled = true;
+                document.getElementById('stopButton').disabled = false;
+            }
+        }
 
+        // Stop scanning
+        function stopScanning() {
+            if (scanning) {
+                scanning = false;
+                clearInterval(intervalId);
+                document.getElementById('startButton').disabled = false;
+                document.getElementById('stopButton').disabled = true;
+            }
+        }
 
-
-
+        // Attach button event listeners
+        document.getElementById('startButton').addEventListener('click', startScanning);
+        document.getElementById('stopButton').addEventListener('click', stopScanning);
 
 </script>
 </body>

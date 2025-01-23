@@ -3,98 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Military Radar Simulation</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: black;
-            color: white;
-        }
-
-        h1 {
-            color: lime;
-        }
-
-        #radarCanvas {
-            border: 2px solid lime;
-            background-color: rgba(0, 0, 0, 0.8);
-            border-radius: 50%;
-            margin-top: 20px;
-        }
-
-    </style>
+    <title>Sensor HC-SR04</title>
 </head>
 <body>
-<h1>Military Radar</h1>
-<p>Objects detected will appear as blips on the radar.</p>
-<canvas id="radarCanvas" width="400" height="400"></canvas>
+<h1>Distancia del Sensor HC-SR04</h1>
+<p>La distancia actual es: <strong id="distance">Cargando...</strong></p>
 
 <script>
-        const canvas = document.getElementById('radarCanvas');
-        const ctx = canvas.getContext('2d');
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = canvas.width / 2 - 10;
-        let angle = 0; // Initial radar sweep angle
-
-        function drawRadar() {
-            // Clear the canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Draw the radar circle
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = "lime";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.closePath();
-
-            // Draw the radar sweep line
-            const sweepX = centerX + radius * Math.cos(angle);
-            const sweepY = centerY + radius * Math.sin(angle);
-
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY);
-            ctx.lineTo(sweepX, sweepY);
-            ctx.strokeStyle = "lime";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.closePath();
-
-            // Increment the angle for the sweep
-            angle += Math.PI / 180;
-            if (angle >= Math.PI * 2) {
-                angle = 0;
-            }
-        }
-
-        function drawBlip(distance, angleDegrees) {
-            const angleRadians = (angleDegrees * Math.PI) / 180;
-            const blipX = centerX + (distance / 200) * radius * Math.cos(angleRadians);
-            const blipY = centerY + (distance / 200) * radius * Math.sin(angleRadians);
-
-            ctx.beginPath();
-            ctx.arc(blipX, blipY, 5, 0, Math.PI * 2);
-            ctx.fillStyle = "red";
-            ctx.fill();
-            ctx.closePath();
-        }
-
-        function updateRadar() {
+        function updateDistance() {
             fetch('/api/distance')
                 .then(response => response.json())
                 .then(data => {
-                    drawRadar(); // Redraw the radar
                     if (data.distance) {
-                        const distance = data.distance; // Distance in cm
-                        const angleDegrees = angle * (180 / Math.PI); // Convert angle to degrees
-                        drawBlip(distance, angleDegrees); // Draw a blip at the detected position
+                        document.getElementById('distance').innerText = data.distance + ' cm';
+                    } else {
+                        document.getElementById('distance').innerText = 'Error al medir';
                     }
                 });
         }
-
-        setInterval(updateRadar, 100); // Update radar every 100ms
+        setInterval(updateDistance, 1000);
 
 </script>
 </body>
